@@ -9,6 +9,7 @@ use indexmap::indexset;
 use petgraph::Direction::Outgoing;
 
 use std::collections::hash_map::RandomState;
+use std::collections::HashMap;
 
 // use std::{
 //     hash::Hash,
@@ -55,9 +56,62 @@ fn simple_paths(
     return acc;
 }
 
+/// Finds directed shortest path between source and target.
+/// ----------
+///
+/// :param List[Tuple[(uint, uint)...] edges: A list of triplets [(a,b, w) ...] representing a directed edge from a to b with weight w.
+///
+/// :param uint start:  The source node
+///
+/// :param uint goal: The target node
+///
+
+#[pyfunction]
+fn directed_simple_paths(
+    edges: Vec<(usize,usize)>,
+    from: usize,
+    to: usize
+) -> usize
+{
+    let graph = DiGraphMap::<usize, usize>::from_edges(&edges);
+    let mut visited: HashMap::<usize, usize> = HashMap::new();
+    return dfs(&graph, &mut visited, from, to);
+}
+
+fn dfs(
+    g: &DiGraphMap::<usize, usize>,
+    visited: &mut HashMap::<usize, usize>,
+    from: usize,
+    to: usize
+) -> usize
+{
+    if from == to {
+        return 1;
+    }
+    match visited.get(&from) {
+        Some(&val) => {
+            return val;
+        },
+        _ => {
+            let mut acc = 0;
+            for child in g.neighbors_directed(from, Outgoing) {
+                acc += dfs(g, visited, child, to);
+            }
+            visited.insert(from, acc);
+            return acc;
+        }
+    }
+    // if visited.contains_key(&from) {
+    //     return visited[&from];
+    // }
+    
+    // return acc;
+}
+
 /// A Python module implemented in Rust.
 #[pymodule]
 fn r_simple_paths(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(simple_paths, m)?)?;
+    m.add_function(wrap_pyfunction!(directed_simple_paths, m)?)?;
     Ok(())
 }
